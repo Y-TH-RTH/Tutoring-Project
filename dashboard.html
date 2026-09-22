@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admins</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container wide">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <div class="subtitle-bar">Admins</div>
+
+    <div class="dash-columns">
+      <div>
+        <div class="tabs">
+          <button class="tab active" data-tab="AIP">AIP</button>
+          <button class="tab" data-tab="P3D">P3D</button>
+          <button class="tab" data-tab="AT">AT</button>
+        </div>
+        <table class="grid-table" id="data-table">
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <div class="side-buttons">
+        <button class="btn" id="btn-edit-aip">Edit AIP</button>
+        <button class="btn" id="btn-edit-tutors">Edit Tutors</button>
+        <button class="btn" id="btn-review-apps">Review Applications</button>
+        <button class="btn" id="btn-edit-admins">Edit Admins</button>
+      </div>
+    </div>
+
+    <br>
+    <a class="back-link" href="home.html">&larr; Back to Home</a>
+  </div>
+
+  <!-- Edit AIP modal -->
+  <div class="modal-overlay hidden" id="modal-aip">
+    <div class="modal">
+      <h3>Edit AIP</h3>
+      <form id="aip-form">
+        <label>Student Full Name:</label>
+        <input type="text" name="student" required>
+        <label>Subject:</label>
+        <input type="text" name="subject" required>
+        <label>Teacher: <span style="font-weight:normal;">(auto-filled — logged-in admin)</span></label>
+        <input type="text" name="teacher" value="Mrs. Brooks" readonly>
+        <div class="check-group">
+          <label><input type="radio" name="action" value="Add" checked> Add</label>
+          <label><input type="radio" name="action" value="Remove"> Remove</label>
+        </div>
+        <br>
+        <button class="btn" type="submit">Submit</button>
+        <button class="btn secondary" type="button" onclick="closeModal('modal-aip')">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Tutors modal -->
+  <div class="modal-overlay hidden" id="modal-tutors">
+    <div class="modal">
+      <h3>Edit Tutors</h3>
+      <p style="color:var(--gold);">Placeholder list — will pull from the tutors table once Supabase is connected.</p>
+      <label>Tutor Username:</label>
+      <input type="text" placeholder="e.g. jsmith22">
+      <label>Day:</label>
+      <div class="check-group">
+        <label><input type="radio" name="tutor-day" value="Tuesday" checked> Tuesday</label>
+        <label><input type="radio" name="tutor-day" value="Wednesday"> Wednesday</label>
+        <label><input type="radio" name="tutor-day" value="Thursday"> Thursday</label>
+      </div>
+      <label>Room Type:</label>
+      <div class="check-group">
+        <label><input type="radio" name="room-type" value="Upper" checked> Upper</label>
+        <label><input type="radio" name="room-type" value="Lower"> Lower</label>
+      </div>
+      <label>Room Number:</label>
+      <input type="text" placeholder="e.g. 214">
+      <div class="check-group">
+        <label><input type="checkbox"> Room Lead</label>
+      </div>
+      <br>
+      <button class="btn" type="button" onclick="closeModal('modal-tutors')">Save</button>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-tutors')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Review Applications modal -->
+  <div class="modal-overlay hidden" id="modal-apps">
+    <div class="modal">
+      <h3>Review Applications</h3>
+      <p style="color:var(--gold);">Placeholder applicant — real queue will pull from the applications table.</p>
+      <p style="color:var(--gold); font-weight:bold;">Jane Doe — 4 of 6 required recommendations received</p>
+      <div class="check-group">
+        <label><input type="radio" name="rec" value="recommended"> Recommended</label>
+        <label><input type="radio" name="rec" value="not-recommended"> Not Recommended</label>
+      </div>
+      <p style="color:var(--gold); font-size:0.9rem;">Final acceptance decision is made by the Head Admin once 6+ recommendations are in.</p>
+      <br>
+      <button class="btn" type="button" onclick="closeModal('modal-apps')">Submit</button>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-apps')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit Admins modal -->
+  <div class="modal-overlay hidden" id="modal-admins">
+    <div class="modal">
+      <h3>Edit Admins</h3>
+      <p style="color:var(--gold);">Pending admin requests and current admin list will appear here once Supabase is connected.</p>
+      <br>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-admins')">Close</button>
+    </div>
+  </div>
+
+<script>
+  // Tab switching (front-end only for now — each tab will later load a
+  // differently-filtered query from the "grand spreadsheet" table).
+  const tabs = document.querySelectorAll('.tab');
+  const tableBody = document.getElementById('table-body');
+
+  function renderEmptyGrid(rows, cols) {
+    tableBody.innerHTML = '';
+    for (let r = 0; r < rows; r++) {
+      const tr = document.createElement('tr');
+      for (let c = 0; c < cols; c++) {
+        const td = document.createElement('td');
+        td.innerHTML = '&nbsp;';
+        tr.appendChild(td);
+      }
+      tableBody.appendChild(tr);
+    }
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderEmptyGrid(10, 7); // placeholder — same empty shape for all three tabs for now
+    });
+  });
+
+  renderEmptyGrid(10, 7);
+
+  function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  document.getElementById('btn-edit-aip').addEventListener('click', () => openModal('modal-aip'));
+  document.getElementById('btn-edit-tutors').addEventListener('click', () => openModal('modal-tutors'));
+  document.getElementById('btn-review-apps').addEventListener('click', () => openModal('modal-apps'));
+  document.getElementById('btn-edit-admins').addEventListener('click', () => openModal('modal-admins'));
+
+  document.getElementById('aip-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    alert('AIP list updated! (placeholder — will write to Supabase once connected)');
+    closeModal('modal-aip');
+  });
+</script>
+</body>
+</html>
