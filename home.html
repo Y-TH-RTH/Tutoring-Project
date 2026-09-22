@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haas Hall Academy Bentonville Tutoring Program</title>
+<style>
+  :root {
+    --blue: #4472db;
+    --blue-dark: #2f4fb0;
+    --gold: #f6d78b;
+    --bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Courier New", monospace;
+    background: var(--bg);
+    color: var(--gold);
+    padding: 24px;
+  }
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .title-bar {
+    background: var(--blue);
+    border-radius: 10px;
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: bold;
+    margin-bottom: 16px;
+  }
+  .nav-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .nav-grid { grid-template-columns: 1fr; }
+  }
+  .nav-button {
+    display: block;
+    background: var(--blue);
+    color: var(--gold);
+    text-decoration: none;
+    border-radius: 10px;
+    padding: 22px 20px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: bold;
+    transition: background 0.15s ease;
+  }
+  .nav-button:hover,
+  .nav-button:focus-visible {
+    background: var(--blue-dark);
+    outline: none;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <nav class="nav-grid">
+      <a class="nav-button" href="admin-login.html">Admin Sign Up/In</a>
+      <a class="nav-button" href="applications.html">Tutor Applications</a>
+      <a class="nav-button" href="tutors.html">Tutors Page</a>
+      <a class="nav-button" href="signin-sheet.html">New Sign-Up Sheet</a>
+    </nav>
+  </div>
+</body>
+</html>
