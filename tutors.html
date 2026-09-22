@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutor Sign Up/In</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <div class="subtitle-bar">Tutor Sign In</div>
+
+    <form class="panel" id="login-form">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required>
+    </form>
+
+    <div class="panel hidden" id="not-in-db-panel">
+      <p id="not-found-msg" style="color:var(--gold); font-weight:bold; margin:0;">
+        Not found in tutor list, contact tutoring leadership.
+      </p>
+    </div>
+
+    <button class="btn" id="submit-btn" type="submit" form="login-form">Sign Up/In</button>
+    <br><br>
+    <a class="back-link" href="home.html">&larr; Back to Home</a>
+  </div>
+
+<script>
+  // NOTE: this is placeholder front-end logic only. Once Supabase is
+  // connected, replace checkCredentials() with a real lookup against
+  // the tutors table.
+
+  const form = document.getElementById('login-form');
+  const notInDbPanel = document.getElementById('not-in-db-panel');
+  const usernameInput = document.getElementById('username');
+
+  function checkCredentials(username) {
+    // Placeholder: always fails for now. Wire this to Supabase later.
+    return false;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const username = usernameInput.value.trim();
+
+    if (username === '') {
+      return;
+    }
+
+    const success = checkCredentials(username);
+
+    if (success) {
+      alert('Signed in! (placeholder — real redirect happens once Supabase is connected)');
+      notInDbPanel.classList.add('hidden');
+      return;
+    }
+
+    // Not found in the (future) tutor database
+    notInDbPanel.classList.remove('hidden');
+  });
+</script>
+</body>
+</html>
