@@ -113,11 +113,7 @@
         <label>Full Name:</label>
         <input type="text" id="tutee-name" required>
         <label>Subject:</label>
-        <select id="tutee-subject" style="width:100%; margin-top:4px; padding:8px; border-radius:6px; font-family:inherit;">
-          <option>Algebra I</option><option>Algebra II</option><option>Geometry</option>
-          <option>Pre-Calculus</option><option>Biology</option><option>Chemistry</option>
-          <option>Physics</option><option>English 9</option><option>English 10</option>
-        </select>
+        <input type="text" id="tutee-subject" placeholder="e.g. Algebra II" required>
         <label>Teacher:</label>
         <select id="tutee-teacher" style="width:100%; margin-top:4px; padding:8px; border-radius:6px; font-family:inherit;">
           <option>Mr. Smith</option><option>Ms. Johnson</option><option>Mrs. Lee</option>
@@ -293,9 +289,9 @@
   document.getElementById('tutee-form').addEventListener('submit', function (e) {
     e.preventDefault();
     const name = document.getElementById('tutee-name').value.trim();
-    const subject = document.getElementById('tutee-subject').value;
+    const subject = document.getElementById('tutee-subject').value.trim();
     const teacher = document.getElementById('tutee-teacher').value;
-    if (!name) return;
+    if (!name || !subject) return;
     tutees.push({ name, subject, teacher, signedIn: nowTime(), signedOut: null });
     renderTutees();
     document.getElementById('tutee-form').reset();
