@@ -5,26 +5,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admins</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  .sheet-table { width:100%; border-collapse:collapse; }
+  .sheet-table th, .sheet-table td {
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    text-align: left;
+  }
+  .sheet-table th { background: var(--bg); color: var(--ink-soft); font-weight:600; font-size:0.8rem; }
+  .sheet-table td[contenteditable="true"] { cursor: text; }
+  .sheet-table td[contenteditable="true"]:focus {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
+    background: var(--blue-soft);
+  }
+  .sheet-table td.attendance-y { color: #15803d; font-weight:700; text-align:center; }
+  .sheet-table td.attendance-n { color: var(--ink-soft); text-align:center; }
+  .row-delete { background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:1rem; }
+  .row-delete:hover { color:#b91c1c; }
+  .sheet-wrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+  .week-label { color: var(--ink-soft); font-size:0.85rem; margin: 6px 0 10px; }
+  .save-flash { transition: background 0.6s ease; }
+</style>
 </head>
 <body>
   <div class="container wide">
     <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
     <div class="subtitle-bar">Admins</div>
+    <div id="session-bar" style="color:var(--ink-soft); font-size:0.85rem; margin:-6px 0 10px; text-align:right;"></div>
 
     <div class="dash-columns">
       <div>
         <div class="tabs">
-          <button class="tab active" data-tab="AIP">AIP</button>
-          <button class="tab" data-tab="P3D">P3D</button>
-          <button class="tab" data-tab="AT">AT</button>
+          <button class="tab active" data-tab="scholars">Scholars</button>
+          <button class="tab" data-tab="aip">AIP Scholars</button>
         </div>
-        <table class="grid-table" id="data-table">
-          <tbody id="table-body"></tbody>
-        </table>
+        <div class="week-label" id="week-label"></div>
+        <div class="sheet-wrap">
+          <table class="sheet-table" id="scholars-table">
+            <thead>
+              <tr><th>Last Name</th><th>First Name</th><th>Attendance</th><th></th></tr>
+            </thead>
+            <tbody id="scholars-body"></tbody>
+          </table>
+          <table class="sheet-table hidden" id="aip-table">
+            <thead>
+              <tr><th>Last Name</th><th>First Name</th><th>Grade</th><th>Teacher & Class</th><th>Start / End Grade</th><th>Attendance</th><th></th></tr>
+            </thead>
+            <tbody id="aip-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="side-buttons">
-        <button class="btn" id="btn-edit-aip">Edit AIP</button>
+        <button class="btn" id="btn-add-aip">Add AIP Scholars</button>
         <button class="btn" id="btn-edit-tutors">Edit Tutors</button>
         <button class="btn" id="btn-review-apps">Review Applications</button>
         <button class="btn" id="btn-edit-admins">Edit Admins</button>
@@ -35,24 +71,34 @@
     <a class="back-link" href="home.html">&larr; Back to Home</a>
   </div>
 
-  <!-- Edit AIP modal -->
-  <div class="modal-overlay hidden" id="modal-aip">
+  <!-- Add AIP Scholars modal -->
+  <div class="modal-overlay hidden" id="modal-add-aip">
     <div class="modal">
-      <h3>Edit AIP</h3>
-      <form id="aip-form">
-        <label>Student Full Name:</label>
-        <input type="text" name="student" required>
-        <label>Subject:</label>
-        <input type="text" name="subject" required>
-        <label>Teacher: <span style="font-weight:normal;">(auto-filled — logged-in admin)</span></label>
-        <input type="text" name="teacher" value="Mrs. Brooks" readonly>
-        <div class="check-group">
-          <label><input type="radio" name="action" value="Add" checked> Add</label>
-          <label><input type="radio" name="action" value="Remove"> Remove</label>
-        </div>
-        <br>
-        <button class="btn" type="submit">Submit</button>
-        <button class="btn secondary" type="button" onclick="closeModal('modal-aip')">Cancel</button>
+      <h3>Add AIP Scholar</h3>
+      <form id="aip-add-form">
+        <label>Last Name:</label>
+        <input type="text" name="last_name" required>
+        <label>First Name:</label>
+        <input type="text" name="first_name" required>
+        <label>Grade:</label>
+        <select name="grade">
+          <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+        </select>
+        <label>Teacher:</label>
+        <select name="teacher"></select>
+        <label>Class:</label>
+        <input type="text" name="class_name" placeholder="e.g. Algebra 1">
+        <label>Start Grade:</label>
+        <select name="start_grade">
+          <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+        </select>
+        <label>End Grade:</label>
+        <select name="end_grade">
+          <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+        </select>
+        <br><br>
+        <button class="btn" type="submit">Add Scholar</button>
+        <button class="btn secondary" type="button" onclick="closeModal('modal-add-aip')">Cancel</button>
       </form>
     </div>
   </div>
@@ -61,7 +107,7 @@
   <div class="modal-overlay hidden" id="modal-tutors">
     <div class="modal">
       <h3>Edit Tutors</h3>
-      <p style="color:var(--gold);">Placeholder list — will pull from the tutors table once Supabase is connected.</p>
+      <p style="color:var(--gold);">Placeholder list — will pull from the tutors table once wired up here too.</p>
       <label>Tutor Username:</label>
       <input type="text" placeholder="e.g. jsmith22">
       <label>Day:</label>
@@ -105,55 +151,388 @@
 
   <!-- Edit Admins modal -->
   <div class="modal-overlay hidden" id="modal-admins">
-    <div class="modal">
+    <div class="modal" style="max-width:520px;">
       <h3>Edit Admins</h3>
-      <p style="color:var(--gold);">Pending admin requests and current admin list will appear here once Supabase is connected.</p>
+
+      <table class="sheet-table" id="admins-list-table" style="margin-bottom:16px;">
+        <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+        <tbody id="admins-list-body"></tbody>
+      </table>
+
+      <p style="color:var(--gold); font-weight:bold; margin-bottom:4px;">Add New Admin</p>
+      <form id="add-admin-form">
+        <label>Full Name:</label>
+        <input type="text" name="full_name" required>
+        <label>Role:</label>
+        <select name="role">
+          <option value="Admin">Admin</option>
+          <option value="Head admin">Head admin</option>
+        </select>
+        <label>Your Password (to confirm you're a Head admin):</label>
+        <input type="password" name="confirm_password" required>
+        <br><br>
+        <button class="btn" type="submit">Add Admin</button>
+      </form>
+
       <br>
       <button class="btn secondary" type="button" onclick="closeModal('modal-admins')">Close</button>
     </div>
   </div>
 
 <script>
-  // Tab switching (front-end only for now — each tab will later load a
-  // differently-filtered query from the "grand spreadsheet" table).
-  const tabs = document.querySelectorAll('.tab');
-  const tableBody = document.getElementById('table-body');
+  /* ---------- Supabase connection ---------- */
+  const SUPABASE_URL = 'https://qdjgnxvomzukvsxjrhen.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkamdueHZvbXp1a3ZzeGpyaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMzU5OTUsImV4cCI6MjEwNTYxMTk5NX0.H_Qc5zuK1TMslOFuFTXa0rZg-JVDJZtuvanQySwkD84';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  function renderEmptyGrid(rows, cols) {
-    tableBody.innerHTML = '';
-    for (let r = 0; r < rows; r++) {
-      const tr = document.createElement('tr');
-      for (let c = 0; c < cols; c++) {
-        const td = document.createElement('td');
-        td.innerHTML = '&nbsp;';
-        tr.appendChild(td);
-      }
-      tableBody.appendChild(tr);
-    }
+  /* ---------- Session gate ---------- */
+  const adminSessionRaw = sessionStorage.getItem('admin_session');
+  if (!adminSessionRaw) {
+    window.location.href = 'admin-login.html';
+  }
+  const adminSession = JSON.parse(adminSessionRaw || '{}');
+
+  document.getElementById('session-bar').innerHTML =
+    `Logged in as ${adminSession.full_name} (${adminSession.role}) &nbsp;|&nbsp; ` +
+    `<a href="#" id="logout-link" style="color:var(--blue);">Log out</a>`;
+  document.getElementById('logout-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    sessionStorage.removeItem('admin_session');
+    window.location.href = 'home.html';
+  });
+
+  // How many visits/week counts as "attending" for each roster.
+  const AIP_VISITS_FOR_Y = 2;
+  const REGULAR_VISITS_FOR_Y = 1;
+
+  const TEACHERS = [
+    'Depner', 'Levings', 'Stringfellow', 'Greenwood', 'Riggs', 'DeSpain',
+    'Longanecker', 'Pearce', 'Still', 'Powell', 'Passmore', 'Gilbert',
+    'Golden', 'Ingram', 'Hamlin', 'Karras', 'Brophy', 'Smiley',
+    'Parker', 'Turnbaugh', 'Cashion'
+  ];
+  const teacherSelect = document.querySelector('#aip-add-form select[name="teacher"]');
+  TEACHERS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    teacherSelect.appendChild(opt);
+  });
+
+  function pad(n) { return n.toString().padStart(2, '0'); }
+  function toISODate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  function normalizeName(n) { return n.trim().toLowerCase().replace(/\s+/g, ' '); }
+
+  function getWeekRange(d) {
+    const day = d.getDay(); // 0 = Sun .. 6 = Sat
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { monday, sunday };
   }
 
+  const { monday, sunday } = getWeekRange(new Date());
+  document.getElementById('week-label').textContent =
+    'Attendance for week of ' + toISODate(monday) + ' – ' + toISODate(sunday);
+
+  /* ---------- Tab switching ---------- */
+  const tabs = document.querySelectorAll('.tab');
+  const scholarsTable = document.getElementById('scholars-table');
+  const aipTable = document.getElementById('aip-table');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      renderEmptyGrid(10, 7); // placeholder — same empty shape for all three tabs for now
+      if (tab.dataset.tab === 'scholars') {
+        scholarsTable.classList.remove('hidden');
+        aipTable.classList.add('hidden');
+      } else {
+        aipTable.classList.remove('hidden');
+        scholarsTable.classList.add('hidden');
+      }
     });
   });
 
-  renderEmptyGrid(10, 7);
+  /* ---------- Editable cell helper ---------- */
+  // Attaches a save-on-blur handler to a contenteditable <td>.
+  function makeEditable(td, table, id, field) {
+    td.contentEditable = 'true';
+    let original = td.textContent;
+    td.addEventListener('focus', () => { original = td.textContent; });
+    td.addEventListener('blur', async () => {
+      const value = td.textContent.trim();
+      if (value === original) return;
+      const { error } = await db.from(table).update({ [field]: value }).eq('id', id);
+      if (error) {
+        alert('Could not save that change: ' + error.message);
+        td.textContent = original;
+        return;
+      }
+      td.style.background = '#dcfce7';
+      setTimeout(() => { td.style.background = ''; }, 600);
+    });
+  }
 
-  function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  function makeDeleteButton(table, id, onDeleted) {
+    const btn = document.createElement('button');
+    btn.className = 'row-delete';
+    btn.textContent = '✕';
+    btn.title = 'Remove';
+    btn.addEventListener('click', async () => {
+      if (!confirm('Remove this row?')) return;
+      const { error } = await db.from(table).delete().eq('id', id);
+      if (error) { alert('Could not delete: ' + error.message); return; }
+      onDeleted();
+    });
+    return btn;
+  }
 
-  document.getElementById('btn-edit-aip').addEventListener('click', () => openModal('modal-aip'));
+  /* ---------- Load everything ---------- */
+  async function loadDashboard() {
+    // Weekly session log, used to compute attendance for both tabs.
+    const { data: sessions, error: sessionsErr } = await db
+      .from('Scholars')
+      .select('full_name, session_date')
+      .gte('session_date', toISODate(monday))
+      .lte('session_date', toISODate(sunday));
+
+    if (sessionsErr) console.error('Could not load session log:', sessionsErr);
+
+    const weeklyCounts = {}; // normalized name -> visit count this week
+    (sessions || []).forEach(s => {
+      const key = normalizeName(s.full_name || '');
+      if (!key) return;
+      weeklyCounts[key] = (weeklyCounts[key] || 0) + 1;
+    });
+
+    const { data: aipRows, error: aipErr } = await db
+      .from('aip_scholars')
+      .select('*')
+      .order('last_name', { ascending: true });
+    if (aipErr) { console.error(aipErr); alert('Could not load AIP Scholars: ' + aipErr.message); }
+
+    const aipNameSet = new Set(
+      (aipRows || []).map(r => normalizeName(`${r.first_name} ${r.last_name}`))
+    );
+
+    renderAipTable(aipRows || [], weeklyCounts);
+
+    // Regular scholars roster — auto-add anyone who showed up in the
+    // session log this week (ever, in this simple version) and isn't AIP.
+    const { data: scholarRows, error: scholarErr } = await db
+      .from('scholars')
+      .select('*');
+    if (scholarErr) console.error(scholarErr);
+
+    const existingScholarNames = new Set(
+      (scholarRows || []).map(r => normalizeName(`${r.first_name} ${r.last_name}`))
+    );
+
+    const toInsert = [];
+    Object.keys(weeklyCounts).forEach(key => {
+      if (aipNameSet.has(key) || existingScholarNames.has(key)) return;
+      const parts = key.split(' ');
+      const first_name = parts[0];
+      const last_name = parts.slice(1).join(' ') || '(unknown)';
+      toInsert.push({ first_name, last_name });
+    });
+
+    let finalScholarRows = scholarRows || [];
+    if (toInsert.length > 0) {
+      const { data: inserted, error: insertErr } = await db
+        .from('scholars')
+        .insert(toInsert)
+        .select();
+      if (insertErr) {
+        console.error('Could not auto-add new scholars:', insertErr);
+      } else {
+        finalScholarRows = finalScholarRows.concat(inserted || []);
+      }
+    }
+
+    renderScholarsTable(finalScholarRows, weeklyCounts);
+  }
+
+  function attendanceCell(count, threshold) {
+    const td = document.createElement('td');
+    if (count >= threshold) {
+      td.textContent = 'Y';
+      td.className = 'attendance-y';
+    } else {
+      td.textContent = 'No';
+      td.className = 'attendance-n';
+    }
+    return td;
+  }
+
+  function renderAipTable(rows, weeklyCounts) {
+    const body = document.getElementById('aip-body');
+    body.innerHTML = '';
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+
+      const lastTd = document.createElement('td');
+      lastTd.textContent = row.last_name || '';
+      makeEditable(lastTd, 'aip_scholars', row.id, 'last_name');
+
+      const firstTd = document.createElement('td');
+      firstTd.textContent = row.first_name || '';
+      makeEditable(firstTd, 'aip_scholars', row.id, 'first_name');
+
+      const gradeTd = document.createElement('td');
+      gradeTd.textContent = row.grade || '';
+      makeEditable(gradeTd, 'aip_scholars', row.id, 'grade');
+
+      const teacherClassTd = document.createElement('td');
+      teacherClassTd.textContent = row.teacher_class || '';
+      makeEditable(teacherClassTd, 'aip_scholars', row.id, 'teacher_class');
+
+      const startEndTd = document.createElement('td');
+      startEndTd.textContent = `${row.start_grade || '?'} / ${row.end_grade || '?'}`;
+      startEndTd.title = 'Edit start_grade / end_grade separately if needed';
+
+      const key = normalizeName(`${row.first_name} ${row.last_name}`);
+      const count = weeklyCounts[key] || 0;
+      const attTd = attendanceCell(count, AIP_VISITS_FOR_Y);
+
+      const delTd = document.createElement('td');
+      delTd.appendChild(makeDeleteButton('aip_scholars', row.id, () => tr.remove()));
+
+      tr.append(lastTd, firstTd, gradeTd, teacherClassTd, startEndTd, attTd, delTd);
+      body.appendChild(tr);
+    });
+  }
+
+  function renderScholarsTable(rows, weeklyCounts) {
+    const body = document.getElementById('scholars-body');
+    body.innerHTML = '';
+    rows
+      .slice()
+      .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
+      .forEach(row => {
+        const tr = document.createElement('tr');
+
+        const lastTd = document.createElement('td');
+        lastTd.textContent = row.last_name || '';
+        makeEditable(lastTd, 'scholars', row.id, 'last_name');
+
+        const firstTd = document.createElement('td');
+        firstTd.textContent = row.first_name || '';
+        makeEditable(firstTd, 'scholars', row.id, 'first_name');
+
+        const key = normalizeName(`${row.first_name} ${row.last_name}`);
+        const count = weeklyCounts[key] || 0;
+        const attTd = attendanceCell(count, REGULAR_VISITS_FOR_Y);
+
+        const delTd = document.createElement('td');
+        delTd.appendChild(makeDeleteButton('scholars', row.id, () => tr.remove()));
+
+        tr.append(lastTd, firstTd, attTd, delTd);
+        body.appendChild(tr);
+      });
+  }
+
+  loadDashboard();
+
+  /* ---------- Add AIP Scholar modal ---------- */
+  document.getElementById('btn-add-aip').addEventListener('click', () => openModal('modal-add-aip'));
+
+  document.getElementById('aip-add-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const row = {
+      last_name: fd.get('last_name').trim(),
+      first_name: fd.get('first_name').trim(),
+      grade: fd.get('grade'),
+      teacher_class: `${fd.get('teacher')} – ${fd.get('class_name').trim()}`,
+      start_grade: fd.get('start_grade'),
+      end_grade: fd.get('end_grade')
+    };
+    const { error } = await db.from('aip_scholars').insert([row]);
+    if (error) {
+      alert('Could not add scholar: ' + error.message);
+      return;
+    }
+    e.target.reset();
+    closeModal('modal-add-aip');
+    loadDashboard();
+  });
+
+  /* ---------- Other side buttons (placeholders, unchanged) ---------- */
   document.getElementById('btn-edit-tutors').addEventListener('click', () => openModal('modal-tutors'));
   document.getElementById('btn-review-apps').addEventListener('click', () => openModal('modal-apps'));
-  document.getElementById('btn-edit-admins').addEventListener('click', () => openModal('modal-admins'));
 
-  document.getElementById('aip-form').addEventListener('submit', function (e) {
+  /* ---------- Edit Admins: list / add / remove ---------- */
+  async function loadAdminsList() {
+    const { data, error } = await db.rpc('list_admins');
+    const body = document.getElementById('admins-list-body');
+    body.innerHTML = '';
+    if (error) {
+      console.error(error);
+      body.innerHTML = '<tr><td colspan="4">Could not load admins.</td></tr>';
+      return;
+    }
+    (data || []).forEach(row => {
+      const tr = document.createElement('tr');
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'row-delete';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Remove';
+      removeBtn.addEventListener('click', async () => {
+        if (!confirm(`Remove ${row.full_name}?`)) return;
+        const myPassword = prompt('Enter your password to confirm removal:');
+        if (!myPassword) return;
+        const { error: removeErr } = await db.rpc('remove_admin', {
+          p_caller_username: adminSession.username,
+          p_caller_password: myPassword,
+          p_target_username: row.username
+        });
+        if (removeErr) {
+          alert('Could not remove admin: ' + removeErr.message);
+          return;
+        }
+        loadAdminsList();
+      });
+      const delTd = document.createElement('td');
+      delTd.appendChild(removeBtn);
+      tr.innerHTML = `<td>${row.full_name}</td><td>${row.username}</td><td>${row.role}</td>`;
+      tr.appendChild(delTd);
+      body.appendChild(tr);
+    });
+  }
+
+  document.getElementById('btn-edit-admins').addEventListener('click', () => {
+    loadAdminsList();
+    openModal('modal-admins');
+  });
+
+  document.getElementById('add-admin-form').addEventListener('submit', async function (e) {
     e.preventDefault();
-    alert('AIP list updated! (placeholder — will write to Supabase once connected)');
-    closeModal('modal-aip');
+    const fd = new FormData(e.target);
+    const { data, error } = await db.rpc('add_admin', {
+      p_caller_username: adminSession.username,
+      p_caller_password: fd.get('confirm_password'),
+      p_new_full_name: fd.get('full_name').trim(),
+      p_new_role: fd.get('role')
+    });
+    if (error) {
+      alert('Could not add admin: ' + error.message);
+      return;
+    }
+    const result = data && data[0];
+    e.target.reset();
+    loadAdminsList();
+    if (result) {
+      alert(
+        `Admin added!\n\nUsername: ${result.new_username}\nPassword: ${result.new_password}\n\n` +
+        `Write this down now — the password can't be retrieved again once you close this.`
+      );
+    }
   });
 </script>
 </body>
