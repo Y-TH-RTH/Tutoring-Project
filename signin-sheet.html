@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Sign In Sheet</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+  .calendar-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .calendar-header button { background:var(--blue-dark); color:var(--gold); border:none; border-radius:6px; padding:4px 8px; cursor:pointer; font-family:inherit; }
+  td.day-cell { cursor:pointer; }
+  td.day-cell:hover { background:#c3d3f2; }
+  td.selected { background: var(--gold) !important; font-weight:bold; }
+  td.empty-cell { background:#eef2fb; }
+  .student-table { width:100%; border-collapse:collapse; margin-top:10px; }
+  .student-table th, .student-table td { border:1px solid var(--blue); padding:6px; color:var(--ink); background:#fff; font-size:0.85rem; }
+  .student-table th { background:var(--blue-light); }
+  .btn[disabled] { opacity:0.5; cursor:not-allowed; }
+</style>
+</head>
+<body>
+  <div class="container wide">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <div class="subtitle-bar">New Sign In Sheet</div>
+
+    <div class="layout">
+      <div>
+        <div class="panel">
+          <label for="room-number">Room Number:</label>
+          <input type="text" id="room-number" placeholder="###">
+          <label>Room Type:</label>
+          <div class="check-group">
+            <label><input type="radio" name="room-type" value="Upper" checked> Upper</label>
+            <label><input type="radio" name="room-type" value="Lower"> Lower</label>
+          </div>
+        </div>
+
+        <div class="side-buttons">
+          <button class="btn" id="btn-add-entry">Add Entry</button>
+          <button class="btn" id="btn-edit-tutors" disabled>Edit Tutors</button>
+          <button class="btn" id="btn-add-student" disabled>Add Student</button>
+          <button class="btn" id="btn-edit-student" disabled>Edit Student</button>
+          <button class="btn secondary" id="btn-submit-entry">Submit Entry</button>
+        </div>
+
+        <table class="student-table" id="student-table">
+          <thead>
+            <tr><th>Name</th><th>Subject</th><th>Teacher</th><th>Signed In</th><th>Signed Out</th></tr>
+          </thead>
+          <tbody id="student-body"></tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="date-display" id="date-display" style="color:var(--gold);">Date: --/--/----</div>
+          <div class="calendar-header">
+            <div><button id="prev-month">&larr; Month</button> <button id="next-month">Month &rarr;</button></div>
+            <div><button id="prev-year">&larr; Year</button> <button id="next-year">Year &rarr;</button></div>
+          </div>
+          <div id="month-year-label" style="text-align:center; color:var(--gold); font-weight:bold; margin-bottom:6px;"></div>
+          <table class="grid-table">
+            <thead>
+              <tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+            </thead>
+            <tbody id="calendar-body"></tbody>
+          </table>
+        </div>
+
+        <table class="student-table" id="tutor-signedin-table">
+          <thead>
+            <tr><th>Name</th><th>Position</th></tr>
+          </thead>
+          <tbody id="tutor-signedin-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <br>
+    <a class="back-link" href="home.html">&larr; Back to Home</a>
+  </div>
+
+  <!-- Username unlock modal -->
+  <div class="modal-overlay hidden" id="modal-username">
+    <div class="modal">
+      <h3>Enter Username</h3>
+      <input type="text" id="username-input" placeholder="Tutor or admin username">
+      <br><br>
+      <button class="btn" id="username-submit">Continue</button>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-username')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit Tutors (sign-in) modal -->
+  <div class="modal-overlay hidden" id="modal-edit-tutors">
+    <div class="modal">
+      <h3>Edit Tutors</h3>
+      <label>Username:</label>
+      <input type="text" id="tutor-signin-username" readonly>
+      <label>Role:</label>
+      <div class="check-group">
+        <label><input type="radio" name="tutor-role" value="Room Lead"> Room Lead</label>
+        <label><input type="radio" name="tutor-role" value="Swing"> Swing</label>
+        <label><input type="radio" name="tutor-role" value="Tutor" checked> Tutor</label>
+      </div>
+      <p style="color:var(--gold); font-size:0.85rem;">Room Lead is auto-assigned to the day's designated lead if present; otherwise the first tutor to sign in becomes lead.</p>
+      <br>
+      <button class="btn" type="button" id="btn-tutor-signin-confirm">Sign In</button>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-edit-tutors')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Add Student modal -->
+  <div class="modal-overlay hidden" id="modal-add-student">
+    <div class="modal">
+      <h3>Add Student</h3>
+      <form id="student-form">
+        <label>Full Name:</label>
+        <input type="text" id="student-name" required>
+        <label>Choose Subject:</label>
+        <input type="hidden" id="student-subject" required>
+
+        <p style="color:var(--gold); font-weight:bold; margin:10px 0 2px;">Math</p>
+        <select class="subject-category-select" data-category="Math" style="width:100%; padding:8px; border-radius:6px; font-family:inherit;">
+          <option value="">-- Select --</option>
+        </select>
+
+        <p style="color:var(--gold); font-weight:bold; margin:10px 0 2px;">Science</p>
+        <select class="subject-category-select" data-category="Science" style="width:100%; padding:8px; border-radius:6px; font-family:inherit;">
+          <option value="">-- Select --</option>
+        </select>
+
+        <p style="color:var(--gold); font-weight:bold; margin:10px 0 2px;">Computer Science</p>
+        <select class="subject-category-select" data-category="Computer Science" style="width:100%; padding:8px; border-radius:6px; font-family:inherit;">
+          <option value="">-- Select --</option>
+        </select>
+
+        <p style="color:var(--gold); font-weight:bold; margin:10px 0 2px;">Social Studies</p>
+        <select class="subject-category-select" data-category="Social Studies" style="width:100%; padding:8px; border-radius:6px; font-family:inherit;">
+          <option value="">-- Select --</option>
+        </select>
+
+        <p style="color:var(--gold); font-weight:bold; margin:10px 0 2px;">English</p>
+        <select class="subject-category-select" data-category="English" style="width:100%; padding:8px; border-radius:6px; font-family:inherit;">
+          <option value="">-- Select --</option>
+        </select>
+
+        <p style="color:var(--gold); font-weight:bold; margin:10px 0 2px;">Health Sciences</p>
+        <select class="subject-category-select" data-category="Health Sciences" style="width:100%; padding:8px; border-radius:6px; font-family:inherit;">
+          <option value="">-- Select --</option>
+        </select>
+
+        <p id="chosen-subject-display" style="color:var(--gold); font-size:0.85rem; margin-top:8px;">No subject chosen yet.</p>
+        <label>Teacher:</label>
+        <select id="student-teacher" style="width:100%; margin-top:4px; padding:8px; border-radius:6px; font-family:inherit;">
+          <!-- populated by JS from the TEACHERS list below -->
+        </select>
+        <br><br>
+        <button class="btn" type="submit">Sign In Student</button>
+        <button class="btn secondary" type="button" onclick="closeModal('modal-add-student')">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Student modal -->
+  <div class="modal-overlay hidden" id="modal-edit-student">
+    <div class="modal">
+      <div class="tabs" style="margin-bottom:12px;">
+        <button class="tab active" id="tab-edit-info" type="button">Edit Info</button>
+        <button class="tab" id="tab-sign-out" type="button">Student Sign Out</button>
+      </div>
+
+      <div id="panel-edit-info">
+        <label>Full Name:</label>
+        <input type="text" id="edit-student-name" placeholder="Name as currently on file">
+        <label>New Subject (optional):</label>
+        <input type="text" id="edit-student-subject">
+        <label>New Teacher (optional):</label>
+        <input type="text" id="edit-student-teacher">
+        <p style="color:var(--gold); font-size:0.85rem;">Subject/teacher changes require a tutor to accept before taking effect.</p>
+        <br>
+        <button class="btn" type="button" onclick="alert('Change submitted — waiting on tutor acceptance.'); closeModal('modal-edit-student')">Submit Change</button>
+      </div>
+
+      <div id="panel-sign-out" class="hidden">
+        <label>Full Name:</label>
+        <input type="text" id="signout-name" placeholder="Ends all of this student's active sessions">
+        <br><br>
+        <button class="btn" type="button" id="btn-do-signout">Sign Out</button>
+      </div>
+
+      <br>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-edit-student')">Close</button>
+    </div>
+  </div>
+
+<script>
+  /* ---------- Real class & teacher lists (edit here to update the dropdowns) ---------- */
+  const SUBJECTS_BY_CATEGORY = {
+    'Math': [
+      'Pre-Algebra A', 'Pre-Algebra B', 'Algebra 1', 'Algebra 2', 'Geometry', 'AP Stats',
+      'Trig/PreCalc', 'AP PreCalc', 'Calculus', 'AP Calc AB', 'AP Calc BC'
+    ],
+    'Science': [
+      '7 Science', '8 Science', 'Physical Science', 'Biology', 'AP Bio', 'AP Environmental Science',
+      'Chemistry', 'Chemistry II', 'Physics', 'AP Physics C: Mechanics', 'CSI', 'Chem of Foods'
+    ],
+    'Computer Science': [
+      'Intro to Comp Sci', 'Game Development', 'AP Comp Sci Principles', 'AP Comp Sci A'
+    ],
+    'Social Studies': [
+      'Civics/Econ', '7 SS', '8 SS', 'AP US Gov', 'APUSH', 'Intro to Crim', 'World History',
+      'US History', 'AP World', 'AP Psych', 'AP Micro/Macro', 'AP Business Principles'
+    ],
+    'English': [
+      '7 Lang', '7 Lit', '8 Lang', '8 Lit', 'English I Lang', 'English I Lit', 'English II Lang',
+      'English II Lit', 'English III Lit', 'AP Lang', 'AP Lit', 'Journalism', 'AP Research', 'AP Seminar'
+    ],
+    'Health Sciences': [
+      'Med Term/Health', 'College & Career/Health', 'A & P', '7 Health', '8 Health',
+      '7 PE', '8 PE', 'Recreational Sports/Personal Fitness'
+    ]
+  };
+
+  const TEACHERS = [
+    'Depner', 'Levings', 'Stringfellow', 'Greenwood', 'Riggs', 'DeSpain',
+    'Longanecker', 'Pearce', 'Still', 'Meghan', 'Passmore', 'Nurse Shelly',
+    'Golden', 'Ingram', 'Hamlin', 'Karras', 'Brophy', 'Smiley',
+    'Parker', 'Turnbaugh', 'Cashion'
+  ];
+
+  function populateSelect(select, items) {
+    items.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = item;
+      select.appendChild(option);
+    });
+  }
+
+  const categorySelects = document.querySelectorAll('.subject-category-select');
+  const chosenSubjectInput = document.getElementById('student-subject');
+  const chosenSubjectDisplay = document.getElementById('chosen-subject-display');
+
+  categorySelects.forEach(select => {
+    populateSelect(select, SUBJECTS_BY_CATEGORY[select.dataset.category]);
+    select.addEventListener('change', () => {
+      if (select.value === '') return;
+      // Only one category dropdown can have an active selection at a time.
+      categorySelects.forEach(other => { if (other !== select) other.value = ''; });
+      chosenSubjectInput.value = select.value;
+      chosenSubjectDisplay.textContent = 'Subject: ' + select.value + ' (' + select.dataset.category + ')';
+    });
+  });
+
+  populateSelect(document.getElementById('student-teacher'), TEACHERS);
+
+  /* ---------- Calendar ---------- */
+  let viewYear = new Date().getFullYear();
+  let viewMonth = new Date().getMonth(); // 0-indexed
+  let selectedDate = null;
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const calendarBody = document.getElementById('calendar-body');
+  const monthYearLabel = document.getElementById('month-year-label');
+  const dateDisplay = document.getElementById('date-display');
+
+  function pad(n) { return n.toString().padStart(2, '0'); }
+
+  function renderCalendar() {
+    calendarBody.innerHTML = '';
+    monthYearLabel.textContent = monthNames[viewMonth] + ' ' + viewYear;
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sunday
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    let date = 1;
+    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+    const rows = totalCells / 7;
+
+    for (let r = 0; r < rows; r++) {
+      const tr = document.createElement('tr');
+      for (let c = 0; c < 7; c++) {
+        const cellIndex = r * 7 + c;
+        const td = document.createElement('td');
+        if (cellIndex < firstDay || date > daysInMonth) {
+          td.classList.add('empty-cell');
+          td.innerHTML = '&nbsp;';
+        } else {
+          td.classList.add('day-cell');
+          td.textContent = date;
+          const thisDate = date;
+          td.addEventListener('click', () => selectDate(thisDate, td));
+          date++;
+        }
+        tr.appendChild(td);
+      }
+      calendarBody.appendChild(tr);
+    }
+  }
+
+  function selectDate(day, cellEl) {
+    document.querySelectorAll('.day-cell.selected').forEach(el => el.classList.remove('selected'));
+    cellEl.classList.add('selected');
+    selectedDate = new Date(viewYear, viewMonth, day);
+    dateDisplay.textContent = 'Date: ' + pad(day) + '-' + pad(viewMonth + 1) + '-' + viewYear;
+  }
+
+  document.getElementById('prev-month').addEventListener('click', () => {
+    viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    renderCalendar();
+  });
+  document.getElementById('next-month').addEventListener('click', () => {
+    viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    renderCalendar();
+  });
+  document.getElementById('prev-year').addEventListener('click', () => { viewYear--; renderCalendar(); });
+  document.getElementById('next-year').addEventListener('click', () => { viewYear++; renderCalendar(); });
+
+  renderCalendar();
+
+  /* ---------- Modals ---------- */
+  function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  /* ---------- Username unlock ---------- */
+  let unlockedUsername = null;
+
+  document.getElementById('btn-add-entry').addEventListener('click', () => {
+    document.getElementById('username-input').value = '';
+    openModal('modal-username');
+  });
+
+  document.getElementById('username-submit').addEventListener('click', () => {
+    const val = document.getElementById('username-input').value.trim();
+    if (val === '') { alert('Enter a username.'); return; }
+    // Placeholder: any non-empty username "matches" the tutor/teacher DB for now.
+    unlockedUsername = val;
+    document.getElementById('tutor-signin-username').value = val;
+    ['btn-edit-tutors', 'btn-add-student', 'btn-edit-student'].forEach(id => {
+      document.getElementById(id).disabled = false;
+    });
+    closeModal('modal-username');
+    alert('Username recognized — options unlocked for this session.');
+  });
+
+  document.getElementById('btn-edit-tutors').addEventListener('click', () => openModal('modal-edit-tutors'));
+  document.getElementById('btn-add-student').addEventListener('click', () => openModal('modal-add-student'));
+  document.getElementById('btn-edit-student').addEventListener('click', () => openModal('modal-edit-student'));
+
+  /* ---------- Signed-in tutors (name + position, no sign in/out) ---------- */
+  let signedInTutors = []; // { name, position }
+  const tutorSignedInBody = document.getElementById('tutor-signedin-body');
+
+  function renderSignedInTutors() {
+    tutorSignedInBody.innerHTML = '';
+    signedInTutors.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${t.name}</td><td>${t.position}</td>`;
+      tutorSignedInBody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('btn-tutor-signin-confirm').addEventListener('click', () => {
+    const name = document.getElementById('tutor-signin-username').value.trim();
+    const roleRadio = document.querySelector('input[name="tutor-role"]:checked');
+    const position = roleRadio ? roleRadio.value : 'Tutor';
+    if (!name) { alert('No username on file — sign in first.'); return; }
+
+    const existing = signedInTutors.find(t => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      existing.position = position;
+    } else {
+      signedInTutors.push({ name, position });
+    }
+    renderSignedInTutors();
+    closeModal('modal-edit-tutors');
+  });
+
+  /* Edit Student tab switching */
+  const tabEditInfo = document.getElementById('tab-edit-info');
+  const tabSignOut = document.getElementById('tab-sign-out');
+  const panelEditInfo = document.getElementById('panel-edit-info');
+  const panelSignOut = document.getElementById('panel-sign-out');
+
+  tabEditInfo.addEventListener('click', () => {
+    tabEditInfo.classList.add('active'); tabSignOut.classList.remove('active');
+    panelEditInfo.classList.remove('hidden'); panelSignOut.classList.add('hidden');
+  });
+  tabSignOut.addEventListener('click', () => {
+    tabSignOut.classList.add('active'); tabEditInfo.classList.remove('active');
+    panelSignOut.classList.remove('hidden'); panelEditInfo.classList.add('hidden');
+  });
+
+  /* ---------- Student roster (in-memory demo) ---------- */
+  const studentBody = document.getElementById('student-body');
+  let students = []; // { name, subject, teacher, signedIn, signedOut }
+
+  function renderStudents() {
+    studentBody.innerHTML = '';
+    students.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${t.name}</td><td>${t.subject}</td><td>${t.teacher}</td>
+                       <td>${t.signedIn}</td><td>${t.signedOut || '—'}</td>`;
+      studentBody.appendChild(tr);
+    });
+  }
+
+  function nowTime() {
+    const d = new Date();
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  document.getElementById('student-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const name = document.getElementById('student-name').value.trim();
+    const subject = chosenSubjectInput.value;
+    const teacher = document.getElementById('student-teacher').value;
+    if (!name || !subject) {
+      if (!subject) alert('Please choose a subject.');
+      return;
+    }
+    students.push({ name, subject, teacher, signedIn: nowTime(), signedOut: null });
+    renderStudents();
+    document.getElementById('student-form').reset();
+    chosenSubjectInput.value = '';
+    chosenSubjectDisplay.textContent = 'No subject chosen yet.';
+    closeModal('modal-add-student');
+  });
+
+  document.getElementById('btn-do-signout').addEventListener('click', () => {
+    const name = document.getElementById('signout-name').value.trim();
+    if (!name) return;
+    let matched = 0;
+    students.forEach(t => {
+      if (t.name.toLowerCase() === name.toLowerCase() && !t.signedOut) {
+        t.signedOut = nowTime();
+        matched++;
+      }
+    });
+    renderStudents();
+    alert(matched > 0 ? `Signed out ${matched} session(s) for ${name}.` : 'No matching active sessions found.');
+    document.getElementById('signout-name').value = '';
+  });
+
+  document.getElementById('btn-submit-entry').addEventListener('click', () => {
+    const t = nowTime();
+    let closedCount = 0;
+    students.forEach(t2 => { if (!t2.signedOut) { t2.signedOut = t; closedCount++; } });
+    renderStudents();
+    alert(`Entry submitted. ${closedCount} still-signed-in student(s) auto-signed-out at ${t}.`);
+  });
+</script>
+</body>
+</html>
