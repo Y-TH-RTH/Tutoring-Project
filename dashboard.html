@@ -154,10 +154,12 @@
     <div class="modal" style="max-width:520px;">
       <h3>Edit Admins</h3>
 
-      <table class="sheet-table" id="admins-list-table" style="margin-bottom:16px;">
-        <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
-        <tbody id="admins-list-body"></tbody>
-      </table>
+      <div style="max-height:260px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; margin-bottom:16px;">
+        <table class="sheet-table" id="admins-list-table" style="margin-bottom:0;">
+          <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+          <tbody id="admins-list-body"></tbody>
+        </table>
+      </div>
 
       <p style="color:var(--gold); font-weight:bold; margin-bottom:4px;">Add New Admin</p>
       <form id="add-admin-form">
