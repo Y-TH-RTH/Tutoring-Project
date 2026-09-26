@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admins</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  .sheet-table { width:100%; border-collapse:collapse; }
+  .sheet-table th, .sheet-table td {
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    text-align: left;
+  }
+  .sheet-table th { background: var(--bg); color: var(--ink-soft); font-weight:600; font-size:0.8rem; }
+  .sheet-table td[contenteditable="true"] { cursor: text; }
+  .sheet-table td[contenteditable="true"]:focus {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
+    background: var(--blue-soft);
+  }
+  .sheet-table td.attendance-y { color: #15803d; font-weight:700; text-align:center; }
+  .sheet-table td.attendance-n { color: var(--ink-soft); text-align:center; }
+  .row-delete { background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:1rem; }
+  .row-delete:hover { color:#b91c1c; }
+  .sheet-wrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+  .week-label { color: var(--ink-soft); font-size:0.85rem; margin: 6px 0 10px; }
+  .save-flash { transition: background 0.6s ease; }
+  .searchable-select { position: relative; margin-top: 6px; }
+  .searchable-select .ss-input {
+    width: 100%; padding: 11px 13px; border-radius: 9px;
+    border: 1px solid var(--line); font-family: inherit; font-size: 0.95rem;
+  }
+  .ss-panel {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 20;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    max-height: 220px; overflow-y: auto; box-shadow: 0 8px 24px rgba(22,24,29,0.15);
+    margin-top: 4px;
+  }
+  .ss-group-label {
+    padding: 6px 12px; font-size: 0.75rem; font-weight: 700; color: var(--ink-soft);
+    background: var(--bg); text-transform: uppercase;
+  }
+  .ss-option { padding: 8px 14px; cursor: pointer; font-size: 0.9rem; }
+  .ss-option:hover { background: var(--blue-soft); }
+</style>
+</head>
+<body>
+  <div class="container wide">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <div class="subtitle-bar">Admins</div>
+    <div id="session-bar" style="color:var(--ink-soft); font-size:0.85rem; margin:-6px 0 10px; text-align:right;"></div>
+
+    <div class="dash-columns">
+      <div>
+        <div class="tabs">
+          <button class="tab active" data-tab="scholars">Scholars</button>
+          <button class="tab" data-tab="aip">AIP Scholars</button>
+        </div>
+        <div class="week-label" id="week-label"></div>
+        <div class="sheet-wrap">
+          <table class="sheet-table" id="scholars-table">
+            <thead>
+              <tr><th>Last Name</th><th>First Name</th><th>Attendance</th><th></th></tr>
+            </thead>
+            <tbody id="scholars-body"></tbody>
+          </table>
+          <table class="sheet-table hidden" id="aip-table">
+            <thead>
+              <tr><th>Last Name</th><th>First Name</th><th>Grade Level</th><th>Teacher & Class</th><th>Grade in Class (%)</th><th>Attendance</th><th></th></tr>
+            </thead>
+            <tbody id="aip-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="side-buttons">
+        <button class="btn" id="btn-add-aip">Add AIP Scholars</button>
+        <button class="btn" id="btn-edit-tutors">Edit Tutors</button>
+        <button class="btn" id="btn-review-apps">Review Applications</button>
+        <button class="btn" id="btn-edit-admins">Edit Admins</button>
+      </div>
+    </div>
+
+    <br>
+    <a class="back-link" href="home.html">&larr; Back to Home</a>
+  </div>
+
+  <!-- Add AIP Scholars modal -->
+  <div class="modal-overlay hidden" id="modal-add-aip">
+    <div class="modal">
+      <h3>Add AIP Scholar</h3>
+      <form id="aip-add-form">
+        <label>Last Name:</label>
+        <input type="text" name="last_name" required>
+        <label>First Name:</label>
+        <input type="text" name="first_name" required>
+        <label>Grade Level:</label>
+        <select name="grade">
+          <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+        </select>
+        <label>Teacher:</label>
+        <select name="teacher" id="aip-teacher-select">
+          <option value="self">Self</option>
+        </select>
+        <label>Subject:</label>
+        <div class="searchable-select" id="aip-subject-searchable">
+          <input type="text" class="ss-input" placeholder="Type to search subjects..." autocomplete="off">
+          <input type="hidden" name="class_name" required>
+          <div class="ss-panel hidden"></div>
+        </div>
+        <label>Grade in Class (%):</label>
+        <input type="number" name="start_grade" step="0.01" min="0" max="100" placeholder="e.g. 69.32" required>
+        <br><br>
+        <button class="btn" type="submit">Add Scholar</button>
+        <button class="btn secondary" type="button" onclick="closeModal('modal-add-aip')">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Tutors modal -->
+  <div class="modal-overlay hidden" id="modal-tutors">
+    <div class="modal">
+      <h3>Edit Tutors</h3>
+      <p style="color:var(--gold);">Placeholder list — will pull from the tutors table once wired up here too.</p>
+      <label>Tutor Username:</label>
+      <input type="text" placeholder="e.g. jsmith22">
+      <label>Day:</label>
+      <div class="check-group">
+        <label><input type="radio" name="tutor-day" value="Tuesday" checked> Tuesday</label>
+        <label><input type="radio" name="tutor-day" value="Wednesday"> Wednesday</label>
+        <label><input type="radio" name="tutor-day" value="Thursday"> Thursday</label>
+      </div>
+      <label>Room Type:</label>
+      <div class="check-group">
+        <label><input type="radio" name="room-type" value="Upper" checked> Upper</label>
+        <label><input type="radio" name="room-type" value="Lower"> Lower</label>
+      </div>
+      <label>Room Number:</label>
+      <input type="text" placeholder="e.g. 214">
+      <div class="check-group">
+        <label><input type="checkbox"> Room Lead</label>
+      </div>
+      <br>
+      <button class="btn" type="button" onclick="closeModal('modal-tutors')">Save</button>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-tutors')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Review Applications modal -->
+  <div class="modal-overlay hidden" id="modal-apps">
+    <div class="modal">
+      <h3>Review Applications</h3>
+      <p style="color:var(--gold);">Placeholder applicant — real queue will pull from the applications table.</p>
+      <p style="color:var(--gold); font-weight:bold;">Jane Doe — 4 of 6 required recommendations received</p>
+      <div class="check-group">
+        <label><input type="radio" name="rec" value="recommended"> Recommended</label>
+        <label><input type="radio" name="rec" value="not-recommended"> Not Recommended</label>
+      </div>
+      <p style="color:var(--gold); font-size:0.9rem;">Final acceptance decision is made by the Head Admin once 6+ recommendations are in.</p>
+      <br>
+      <button class="btn" type="button" onclick="closeModal('modal-apps')">Submit</button>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-apps')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit Admins modal -->
+  <div class="modal-overlay hidden" id="modal-admins">
+    <div class="modal" style="max-width:520px;">
+      <h3>Edit Admins</h3>
+
+      <div style="max-height:260px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; margin-bottom:16px;">
+        <table class="sheet-table" id="admins-list-table" style="margin-bottom:0;">
+          <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+          <tbody id="admins-list-body"></tbody>
+        </table>
+      </div>
+
+      <p style="color:var(--gold); font-weight:bold; margin-bottom:4px;">Add New Admin</p>
+      <form id="add-admin-form">
+        <label>Full Name:</label>
+        <input type="text" name="full_name" required>
+        <label>Role:</label>
+        <select name="role">
+          <option value="Admin">Admin</option>
+          <option value="Head Admin">Head Admin</option>
+        </select>
+        <br><br>
+        <button class="btn" type="submit">Add Admin</button>
+      </form>
+
+      <br>
+      <button class="btn secondary" type="button" onclick="closeModal('modal-admins')">Close</button>
+    </div>
+  </div>
+
+<script>
+  /* ---------- Supabase connection ---------- */
+  const SUPABASE_URL = 'https://qdjgnxvomzukvsxjrhen.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkamdueHZvbXp1a3ZzeGpyaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMzU5OTUsImV4cCI6MjEwNTYxMTk5NX0.H_Qc5zuK1TMslOFuFTXa0rZg-JVDJZtuvanQySwkD84';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  /* ---------- Session gate ---------- */
+  const adminSessionRaw = sessionStorage.getItem('admin_session');
+  if (!adminSessionRaw) {
+    window.location.href = 'admin-login.html';
+  }
+  const adminSession = JSON.parse(adminSessionRaw || '{}');
+
+  document.getElementById('session-bar').innerHTML =
+    `Logged in as ${adminSession.full_name} (${adminSession.role}) &nbsp;|&nbsp; ` +
+    `<a href="#" id="logout-link" style="color:var(--blue);">Log out</a>`;
+  document.getElementById('logout-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    sessionStorage.removeItem('admin_session');
+    window.location.href = 'home.html';
+  });
+
+  // How many visits/week counts as "attending" for each roster.
+  const AIP_VISITS_FOR_Y = 2;
+  const REGULAR_VISITS_FOR_Y = 1;
+
+  const TEACHERS = [
+    'Depner', 'Levings', 'Stringfellow', 'Greenwood', 'Riggs', 'DeSpain',
+    'Longanecker', 'Pearce', 'Still', 'Powell', 'Passmore', 'Gilbert',
+    'Golden', 'Ingram', 'Hamlin', 'Karras', 'Brophy', 'Smiley',
+    'Parker', 'Turnbaugh', 'Cashion'
+  ];
+  const teacherSelect = document.querySelector('#aip-add-form select[name="teacher"]');
+  TEACHERS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    teacherSelect.appendChild(opt);
+  });
+
+  // Same grouped subject list as applications.html — order and headings preserved
+  const CLASS_GROUPS = {
+    'Math': ['Pre-Algebra', 'Algebra 1', 'Algebra 2', 'Geometry', 'Precalc/Trig', 'AP Precalc', 'Calculus', 'AP Calc AB', 'AP Calc BC', 'AP Stats'],
+    'English': ['7 English', '8 English', 'English I', 'English II', 'English III w/ Personal Comm', 'AP Lang', 'AP Lit', 'AP Seminar', 'AP Research', 'Journalism'],
+    'Science': ['7 Science', '8 Science', 'Physical Science', 'Physics', 'AP Physics C', 'Biology', 'AP Bio', 'AP Environmental Science', 'Chemistry', 'Chemistry 2', 'Chemistry of Foods'],
+    'Computer Science': ['8 KC', 'Intro to Comp Sci', 'AP CSP', 'AP CSA', 'Game Development'],
+    'Social Studies': ['7 SS', '8 SS', 'Civics/Econ', 'AP US Gov', 'AP Micro/Macro', 'Intro to Crim', 'CSI', 'World History', 'AP World', 'US History', 'APUSH', 'AP Psych', 'AP Business'],
+    'Health Sciences': ['7 Career', '7 Health', '7 PE', '8 Health', '8 PE', 'Health', 'A&P', 'Med Term', 'Recreational Sports', 'College & Career', 'Personal Fitness'],
+    'Fine Arts': ['7 Theatre', '7 Art', '8 Art', 'Drawing 1', 'Painting 1', 'Visual Art Foundations 1', 'Sculpture', 'Studio Art', 'AP Art History'],
+    'World Languages': ['Spanish 1', 'Spanish 2', 'Spanish 3', 'AP Spanish Lang', 'French 3', 'AP French Lang']
+  };
+
+  // Reusable searchable single-select. containerEl needs .ss-input, a
+  // hidden input, and a .ss-panel inside it. Keeps group order/headings.
+  function makeSearchableSelect(containerEl, groups) {
+    const input = containerEl.querySelector('.ss-input');
+    const hidden = containerEl.querySelector('input[type="hidden"]');
+    const panel = containerEl.querySelector('.ss-panel');
+
+    function renderPanel(filterText) {
+      const f = filterText.trim().toLowerCase();
+      panel.innerHTML = '';
+      let anyMatch = false;
+      Object.entries(groups).forEach(([groupName, items]) => {
+        const matches = items.filter(item => item.toLowerCase().includes(f));
+        if (matches.length === 0) return;
+        anyMatch = true;
+        const label = document.createElement('div');
+        label.className = 'ss-group-label';
+        label.textContent = groupName;
+        panel.appendChild(label);
+        matches.forEach(item => {
+          const opt = document.createElement('div');
+          opt.className = 'ss-option';
+          opt.textContent = item;
+          opt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            input.value = item;
+            hidden.value = item;
+            panel.classList.add('hidden');
+          });
+          panel.appendChild(opt);
+        });
+      });
+      if (!anyMatch) {
+        panel.innerHTML = '<div class="ss-option" style="color:var(--ink-soft);">No matches</div>';
+      }
+      panel.classList.remove('hidden');
+    }
+
+    input.addEventListener('focus', () => renderPanel(input.value));
+    input.addEventListener('input', () => {
+      hidden.value = ''; // force an explicit pick before submit is valid
+      renderPanel(input.value);
+    });
+    input.addEventListener('blur', () => {
+      setTimeout(() => panel.classList.add('hidden'), 100);
+    });
+  }
+
+  makeSearchableSelect(document.getElementById('aip-subject-searchable'), CLASS_GROUPS);
+
+  function pad(n) { return n.toString().padStart(2, '0'); }
+  function toISODate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  function normalizeName(n) { return n.trim().toLowerCase().replace(/\s+/g, ' '); }
+
+  function getWeekRange(d) {
+    const day = d.getDay(); // 0 = Sun .. 6 = Sat
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { monday, sunday };
+  }
+
+  const { monday, sunday } = getWeekRange(new Date());
+  document.getElementById('week-label').textContent =
+    'Attendance for week of ' + toISODate(monday) + ' – ' + toISODate(sunday);
+
+  /* ---------- Tab switching ---------- */
+  const tabs = document.querySelectorAll('.tab');
+  const scholarsTable = document.getElementById('scholars-table');
+  const aipTable = document.getElementById('aip-table');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (tab.dataset.tab === 'scholars') {
+        scholarsTable.classList.remove('hidden');
+        aipTable.classList.add('hidden');
+      } else {
+        aipTable.classList.remove('hidden');
+        scholarsTable.classList.add('hidden');
+      }
+    });
+  });
+
+  /* ---------- Editable cell helper ---------- */
+  // Attaches a save-on-blur handler to a contenteditable <td>.
+  function makeEditable(td, table, id, field) {
+    td.contentEditable = 'true';
+    let original = td.textContent;
+    td.addEventListener('focus', () => { original = td.textContent; });
+    td.addEventListener('blur', async () => {
+      const value = td.textContent.trim();
+      if (value === original) return;
+      const { error } = await db.from(table).update({ [field]: value }).eq('id', id);
+      if (error) {
+        alert('Could not save that change: ' + error.message);
+        td.textContent = original;
+        return;
+      }
+      td.style.background = '#dcfce7';
+      setTimeout(() => { td.style.background = ''; }, 600);
+    });
+  }
+
+  function makeDeleteButton(table, id, onDeleted) {
+    const btn = document.createElement('button');
+    btn.className = 'row-delete';
+    btn.textContent = '✕';
+    btn.title = 'Remove';
+    btn.addEventListener('click', async () => {
+      if (!confirm('Remove this row?')) return;
+      const { error } = await db.from(table).delete().eq('id', id);
+      if (error) { alert('Could not delete: ' + error.message); return; }
+      onDeleted();
+    });
+    return btn;
+  }
+
+  /* ---------- Load everything ---------- */
+  async function loadDashboard() {
+    // Weekly session log, used to compute attendance for both tabs.
+    const { data: sessions, error: sessionsErr } = await db
+      .from('scholars')
+      .select('full_name, session_date')
+      .gte('session_date', toISODate(monday))
+      .lte('session_date', toISODate(sunday));
+
+    if (sessionsErr) console.error('Could not load session log:', sessionsErr);
+
+    const weeklyCounts = {}; // normalized name -> visit count this week
+    (sessions || []).forEach(s => {
+      const key = normalizeName(s.full_name || '');
+      if (!key) return;
+      weeklyCounts[key] = (weeklyCounts[key] || 0) + 1;
+    });
+
+    const { data: aipRows, error: aipErr } = await db
+      .from('aip_list')
+      .select('*')
+      .order('last_name', { ascending: true });
+    if (aipErr) { console.error(aipErr); alert('Could not load AIP Scholars: ' + aipErr.message); }
+
+    const aipNameSet = new Set(
+      (aipRows || []).map(r => normalizeName(`${r.first_name} ${r.last_name}`))
+    );
+
+    renderAipTable(aipRows || [], weeklyCounts);
+
+    // Regular scholars roster — auto-add anyone who showed up in the
+    // session log this week (ever, in this simple version) and isn't AIP.
+    const { data: scholarRows, error: scholarErr } = await db
+      .from('scholar_roster')
+      .select('*');
+    if (scholarErr) console.error(scholarErr);
+
+    const existingScholarNames = new Set(
+      (scholarRows || []).map(r => normalizeName(`${r.first_name} ${r.last_name}`))
+    );
+
+    const toInsert = [];
+    Object.keys(weeklyCounts).forEach(key => {
+      if (aipNameSet.has(key) || existingScholarNames.has(key)) return;
+      const parts = key.split(' ');
+      const first_name = parts[0];
+      const last_name = parts.slice(1).join(' ') || '(unknown)';
+      toInsert.push({ first_name, last_name });
+    });
+
+    let finalScholarRows = scholarRows || [];
+    if (toInsert.length > 0) {
+      const { data: inserted, error: insertErr } = await db
+        .from('scholar_roster')
+        .insert(toInsert)
+        .select();
+      if (insertErr) {
+        console.error('Could not auto-add new scholars:', insertErr);
+      } else {
+        finalScholarRows = finalScholarRows.concat(inserted || []);
+      }
+    }
+
+    renderScholarsTable(finalScholarRows, weeklyCounts);
+  }
+
+  function attendanceCell(count, threshold) {
+    const td = document.createElement('td');
+    if (count >= threshold) {
+      td.textContent = 'Y';
+      td.className = 'attendance-y';
+    } else {
+      td.textContent = 'No';
+      td.className = 'attendance-n';
+    }
+    return td;
+  }
+
+  function renderAipTable(rows, weeklyCounts) {
+    const body = document.getElementById('aip-body');
+    body.innerHTML = '';
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+
+      const lastTd = document.createElement('td');
+      lastTd.textContent = row.last_name || '';
+      makeEditable(lastTd, 'aip_list', row.id, 'last_name');
+
+      const firstTd = document.createElement('td');
+      firstTd.textContent = row.first_name || '';
+      makeEditable(firstTd, 'aip_list', row.id, 'first_name');
+
+      const gradeTd = document.createElement('td');
+      gradeTd.textContent = row.grade || '';
+      makeEditable(gradeTd, 'aip_list', row.id, 'grade');
+
+      const teacherClassTd = document.createElement('td');
+      teacherClassTd.textContent = row.teacher_class || '';
+      makeEditable(teacherClassTd, 'aip_list', row.id, 'teacher_class');
+
+      const startGradeTd = document.createElement('td');
+      startGradeTd.textContent = (row.start_grade !== null && row.start_grade !== undefined) ? Number(row.start_grade).toFixed(2) : '';
+      makeEditable(startGradeTd, 'aip_list', row.id, 'start_grade');
+
+      const key = normalizeName(`${row.first_name} ${row.last_name}`);
+      const count = weeklyCounts[key] || 0;
+      const attTd = attendanceCell(count, AIP_VISITS_FOR_Y);
+
+      const delTd = document.createElement('td');
+      delTd.appendChild(makeDeleteButton('aip_list', row.id, () => tr.remove()));
+
+      tr.append(lastTd, firstTd, gradeTd, teacherClassTd, startGradeTd, attTd, delTd);
+      body.appendChild(tr);
+    });
+  }
+
+  function renderScholarsTable(rows, weeklyCounts) {
+    const body = document.getElementById('scholars-body');
+    body.innerHTML = '';
+    rows
+      .slice()
+      .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
+      .forEach(row => {
+        const tr = document.createElement('tr');
+
+        const lastTd = document.createElement('td');
+        lastTd.textContent = row.last_name || '';
+        makeEditable(lastTd, 'scholar_roster', row.id, 'last_name');
+
+        const firstTd = document.createElement('td');
+        firstTd.textContent = row.first_name || '';
+        makeEditable(firstTd, 'scholar_roster', row.id, 'first_name');
+
+        const key = normalizeName(`${row.first_name} ${row.last_name}`);
+        const count = weeklyCounts[key] || 0;
+        const attTd = attendanceCell(count, REGULAR_VISITS_FOR_Y);
+
+        const delTd = document.createElement('td');
+        delTd.appendChild(makeDeleteButton('scholar_roster', row.id, () => tr.remove()));
+
+        tr.append(lastTd, firstTd, attTd, delTd);
+        body.appendChild(tr);
+      });
+  }
+
+  loadDashboard();
+
+  /* ---------- Add AIP Scholar modal ---------- */
+  document.getElementById('btn-add-aip').addEventListener('click', () => openModal('modal-add-aip'));
+
+  document.getElementById('aip-add-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+
+    if (!fd.get('class_name')) {
+      alert('Pick a subject from the search list before submitting.');
+      return;
+    }
+
+    let teacherValue = fd.get('teacher');
+    if (teacherValue === 'self') {
+      // Derive from the logged-in admin's own name rather than the dropdown
+      const parts = adminSession.full_name.trim().split(' ');
+      teacherValue = parts[parts.length - 1]; // last name, matching the TEACHERS list style
+    }
+
+    const row = {
+      last_name: fd.get('last_name').trim(),
+      first_name: fd.get('first_name').trim(),
+      grade: fd.get('grade'),
+      teacher_class: `${teacherValue} – ${fd.get('class_name').trim()}`,
+      start_grade: parseFloat(fd.get('start_grade'))
+    };
+    const { error } = await db.from('aip_list').insert([row]);
+    if (error) {
+      alert('Could not add scholar: ' + error.message);
+      return;
+    }
+    e.target.reset();
+    closeModal('modal-add-aip');
+    loadDashboard();
+  });
+
+  /* ---------- Other side buttons (placeholders, unchanged) ---------- */
+  document.getElementById('btn-edit-tutors').addEventListener('click', () => openModal('modal-tutors'));
+  document.getElementById('btn-review-apps').addEventListener('click', () => openModal('modal-apps'));
+
+  /* ---------- Edit Admins: list / add / remove ---------- */
+  async function loadAdminsList() {
+    const { data, error } = await db.rpc('list_admins');
+    const body = document.getElementById('admins-list-body');
+    body.innerHTML = '';
+    if (error) {
+      console.error(error);
+      body.innerHTML = '<tr><td colspan="4">Could not load admins.</td></tr>';
+      return;
+    }
+    (data || []).forEach(row => {
+      const tr = document.createElement('tr');
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'row-delete';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Remove';
+      removeBtn.addEventListener('click', async () => {
+        if (!confirm(`Remove ${row.full_name}?`)) return;
+        const confirmUsername = prompt('Enter a Head Admin username to confirm removal:');
+        if (!confirmUsername) return;
+        const confirmPassword = prompt('Enter that Head Admin\'s password:');
+        if (!confirmPassword) return;
+        const { error: removeErr } = await db.rpc('remove', {
+          p_target_full_name: row.full_name,
+          p_confirming_username: confirmUsername,
+          p_confirming_password: confirmPassword
+        });
+        if (removeErr) {
+          alert('Could not remove admin: ' + removeErr.message);
+          return;
+        }
+        loadAdminsList();
+      });
+      const delTd = document.createElement('td');
+      delTd.appendChild(removeBtn);
+      tr.innerHTML = `<td>${row.full_name}</td><td>${row.username}</td><td>${row.role}</td>`;
+      tr.appendChild(delTd);
+      body.appendChild(tr);
+    });
+  }
+
+  document.getElementById('btn-edit-admins').addEventListener('click', () => {
+    loadAdminsList();
+    openModal('modal-admins');
+  });
+
+  document.getElementById('add-admin-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const { data, error } = await db.rpc('add', {
+      p_full_name: fd.get('full_name').trim(),
+      p_role: fd.get('role')
+    });
+    if (error) {
+      alert('Could not add admin: ' + error.message);
+      return;
+    }
+    const result = data && data[0];
+    e.target.reset();
+    loadAdminsList();
+    if (result) {
+      alert(
+        `Admin added!\n\nUsername: ${result.new_username}\nPassword: ${result.new_password}\n\n` +
+        `Write this down now — the password can't be retrieved again once you close this.`
+      );
+    }
+  });
+</script>
+</body>
+</html>
