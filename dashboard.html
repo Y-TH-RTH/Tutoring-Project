@@ -28,6 +28,12 @@
   .sheet-wrap { overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
   .week-label { color: var(--ink-soft); font-size:0.85rem; margin: 6px 0 10px; }
   .save-flash { transition: background 0.6s ease; }
+  .btn:disabled, .btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: var(--ink-soft) !important;
+  }
+  .btn:disabled:hover, .btn[disabled]:hover { background: var(--ink-soft) !important; }
   .searchable-select { position: relative; margin-top: 6px; }
   .searchable-select .ss-input {
     width: 100%; padding: 11px 13px; border-radius: 9px;
@@ -585,6 +591,12 @@
     editTutorsBtn.title = 'Head Admin only';
   }
 
+  const editAdminsBtn = document.getElementById('btn-edit-admins');
+  if (!isHeadAdmin) {
+    editAdminsBtn.disabled = true;
+    editAdminsBtn.title = 'Head Admin only';
+  }
+
   /* ---------- Small tab-switcher helper reused for all 3 modals ---------- */
   function wireTabs(tabIds, panelIds) {
     tabIds.forEach((tabId, i) => {
@@ -655,6 +667,7 @@
   }
 
   document.getElementById('btn-edit-admins').addEventListener('click', () => {
+    if (!isHeadAdmin) return;
     loadAdminsList();
     openModal('modal-admins');
   });
