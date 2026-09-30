@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutor Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .stat-card .label { font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat-card .value { font-size: 1.6rem; font-weight: 800; color: var(--blue-dark); margin-top: 6px; }
+  .hero {
+    background: var(--blue-soft);
+    border-radius: 16px;
+    padding: 28px 30px;
+    margin-bottom: 20px;
+  }
+  .hero .name { font-size: 1.4rem; font-weight: 800; color: var(--blue-dark); }
+  .hero .role-badge {
+    display: inline-block; margin-top: 8px;
+    background: var(--surface); border: 1px solid var(--blue-line);
+    color: var(--blue-dark); font-weight: 600; font-size: 0.85rem;
+    padding: 4px 12px; border-radius: 999px;
+  }
+
+  /* Absence request form styling (date input isn't covered in style.css) */
+  input[type="date"] {
+    width: 100%;
+    margin-top: 6px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  input[type="date"]:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--blue-soft);
+  }
+  .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .date-row { grid-template-columns: 1fr; } }
+  .optional-tag { font-weight: 400; color: var(--ink-soft); font-size: 0.85rem; }
+  .modal { max-height: 90vh; overflow-y: auto; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <div id="session-bar" style="color:var(--ink-soft); font-size:0.85rem; margin:-6px 0 14px; text-align:right;"></div>
+
+    <div class="hero">
+      <div class="name" id="hero-name">—</div>
+      <div class="role-badge" id="hero-role">—</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Day Assigned</div>
+        <div class="value" id="stat-day">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Room Assigned</div>
+        <div class="value" id="stat-room">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Hours Volunteered</div>
+        <div class="value" id="stat-hours">—</div>
+      </div>
+    </div>
+
+    <br>
+    <button class="btn secondary" id="absence-btn" type="button">Absence Request</button>
+
+    <br>
+    <a class="back-link" href="home.html">&larr; Back to Home</a>
+  </div>
+
+  <!-- Absence Request modal -->
+  <div class="modal-overlay hidden" id="absence-modal">
+    <div class="modal">
+      <h3>Absence Request</h3>
+
+      <form id="absence-form">
+        <label for="absence-name">Name:</label>
+        <input type="text" id="absence-name" name="absence-name">
+
+        <label>Date(s):</label>
+        <div class="date-row">
+          <div>
+            <label for="absence-date-start" style="margin-top:6px; font-weight:400; font-size:0.85rem; color:var(--ink-soft);">From</label>
+            <input type="date" id="absence-date-start" name="absence-date-start">
+          </div>
+          <div>
+            <label for="absence-date-end" style="margin-top:6px; font-weight:400; font-size:0.85rem; color:var(--ink-soft);">To <span class="optional-tag">(leave blank for one day)</span></label>
+            <input type="date" id="absence-date-end" name="absence-date-end">
+          </div>
+        </div>
+
+        <label>Have you found a replacement?</label>
+        <div class="check-group">
+          <label><input type="radio" name="replacement" value="yes"> Yes</label>
+          <label><input type="radio" name="replacement" value="no"> No</label>
+        </div>
+
+        <label for="replacement-name">If so, who is it? <span class="optional-tag">(not required)</span></label>
+        <input type="text" id="replacement-name" name="replacement-name">
+
+        <div class="modal-actions">
+          <button class="btn" type="button" id="absence-submit">Submit</button>
+          <button class="btn secondary" type="button" id="absence-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+  const tutorSessionRaw = sessionStorage.getItem('tutor_session');
+  if (!tutorSessionRaw) {
+    window.location.href = 'tutors.html';
+  }
+  const tutorSession = JSON.parse(tutorSessionRaw || '{}');
+
+  document.getElementById('session-bar').innerHTML =
+    `Logged in as ${tutorSession.username} &nbsp;|&nbsp; ` +
+    `<a href="#" id="logout-link" style="color:var(--blue);">Log out</a>`;
+  document.getElementById('logout-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    sessionStorage.removeItem('tutor_session');
+    window.location.href = 'home.html';
+  });
+
+  document.getElementById('hero-name').textContent = tutorSession.full_name || '—';
+  document.getElementById('hero-role').textContent = tutorSession.role || '—';
+  document.getElementById('stat-day').textContent = tutorSession.day_assigned || '—';
+  document.getElementById('stat-room').textContent = tutorSession.room_assigned || '—';
+  document.getElementById('stat-hours').textContent = (tutorSession.hours_volunteered ?? '—');
+
+  // Absence request: only opens/closes the form for now (no submit logic yet)
+  const absenceModal = document.getElementById('absence-modal');
+  document.getElementById('absence-btn').addEventListener('click', () => {
+    absenceModal.classList.remove('hidden');
+  });
+  document.getElementById('absence-cancel').addEventListener('click', () => {
+    absenceModal.classList.add('hidden');
+  });
+</script>
+</body>
+</html>
