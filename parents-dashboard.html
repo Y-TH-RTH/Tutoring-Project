@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parent Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .stat-card .label { font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat-card .value { font-size: 2rem; font-weight: 800; margin-top: 6px; }
+  .attended { color: #15803D; }
+  .absent { color: #B91C1C; }
+  .hero {
+    background: var(--blue-soft);
+    border-radius: 16px;
+    padding: 28px 30px;
+    margin-bottom: 20px;
+  }
+  .hero .name { font-size: 1.4rem; font-weight: 800; color: var(--blue-dark); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-bar">Haas Hall Academy Bentonville Tutoring Program</div>
+    <div style="color:var(--ink-soft); font-size:0.85rem; margin:-6px 0 14px; text-align:right;">
+      <a href="home.html" style="color:var(--blue);">Log out</a>
+    </div>
+
+    <div class="hero">
+      <div class="name" id="hero-name">Scholar Name</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Monday</div>
+        <div class="value attended" id="stat-mon">&#10003;</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Tuesday</div>
+        <div class="value absent" id="stat-tue">&#10007;</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Wednesday</div>
+        <div class="value attended" id="stat-wed">&#10003;</div>
+      </div>
+    </div>
+
+    <br>
+    <a class="back-link" href="home.html">&larr; Back to Home</a>
+  </div>
+</body>
+</html>
